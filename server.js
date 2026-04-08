@@ -141,8 +141,23 @@ createExplosion — explosão visual (sem dano)
 setFog — névoa
   campos: enabled(bool), density(number 0-1), color(string hex ex:"#aaccff")
 
-playMusic — toca música
-  campos: soundId(number ID do Roblox), volume(0 a 1)
+playMusic — controla o Sound chamado "Music" que já existe no Workspace
+  campos: action("play"|"stop"|"resume"|"change"), soundId(number, obrigatório para play/change), volume(0 a 1)
+  
+  IDs DISPONÍVEIS (use APENAS estes):
+  - 1848354536 → música relaxante normal
+  - 1841647093 → música relaxante estilo elevador (espera)
+  - 139488665764275 → música de luta/ação
+  
+  REGRAS:
+  - "play": toca uma música nova (define o soundId e inicia)
+  - "stop": pausa (PlaybackSpeed = 0)
+  - "resume": retoma do ponto que parou (PlaybackSpeed = 1)  
+  - "change": troca a música sem parar (muda o soundId)
+  - NUNCA invente IDs fora da lista acima
+  - Use música relaxante para momentos calmos, construções, paisagens
+  - Use música de luta para explosões, eventos caóticos, pedidos de ação
+  - Use música elevador para quando está construindo/carregando algo e o player espera
 
 teleportAll — teleporta todos para posição
   campos: position({x,y,z})
