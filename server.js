@@ -91,8 +91,11 @@ ${chatFormatado}
 ${memoriaFormatada}
 
 === COMANDOS QUE VOCÊ PODE USAR ===
-createPart      → cria uma peça no mapa
-  campos: name(string), position({x,y,z}), size({x,y,z}), color(string BrickColor ex:"Bright red"), anchored(bool), material(string ex:"Neon","SmoothPlastic","Wood")
+createPart      → cria um bloco no mapa, roblox é como um lego
+  campos: name(string), position({x,y,z}), size({x,y,z}), 
+          color(string BrickColor — OBRIGATÓRIO, ex:"Bright red","Hot pink","Cyan","Lime green","Deep orange"),
+          anchored(bool), material(string ex:"Neon","SmoothPlastic","Wood","SandyYellow","Granite")
+  IMPORTANTE: size mínimo é 2x2x2. Pense na escala — um jogador tem 5 studs de altura.
 
 sendMessage     → manda mensagem no chat do jogo
   campos: text(string)
