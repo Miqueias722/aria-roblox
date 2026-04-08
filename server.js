@@ -127,8 +127,8 @@ showBillboard   → texto flutuante gigante no céu
 }
 `;
 
-    const rawText = await askGemini(prompt);
-
+   const rawText = await askGemini(prompt);
+   console.log("Resposta Gemini:", rawText); // ← adiciona essa linha
     let result;
     try {
       result = JSON.parse(rawText);
