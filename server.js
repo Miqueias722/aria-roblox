@@ -3,8 +3,7 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 // Memória da IA persiste enquanto o servidor roda
 const memory = {
@@ -13,29 +12,25 @@ const memory = {
 };
 
 async function askGemini(prompt) {
-  const response = await fetch(GEMINI_URL, {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${GROQ_API_KEY}`
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.9,
-        maxOutputTokens: 1200,
-      },
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.9,
+      max_tokens: 1200,
     }),
   });
 
   const data = await response.json();
+  if (!response.ok) throw new Error(JSON.stringify(data));
 
-  if (!response.ok) {
-    throw new Error(JSON.stringify(data));
-  }
-
-  let text = data.candidates[0].content.parts[0].text;
-
-  // Remove markdown caso o Gemini mande ```json ... ```
+  let text = data.choices[0].message.content;
   text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-
   return text;
 }
 
@@ -127,13 +122,14 @@ showBillboard   → texto flutuante gigante no céu
 }
 `;
 
-   const rawText = await askGemini(prompt);
-   console.log("Resposta Gemini:", rawText); // ← adiciona essa linha
+    const rawText = await askGemini(prompt);
+    console.log("Resposta IA:", rawText);
+
     let result;
     try {
       result = JSON.parse(rawText);
     } catch (e) {
-      console.error("Gemini retornou JSON inválido:", rawText);
+      console.error("JSON inválido recebido:", rawText);
       return res.json({ commands: [], thought: "Erro ao parsear resposta" });
     }
 
@@ -157,7 +153,7 @@ showBillboard   → texto flutuante gigante no céu
     res.json({ commands: result.commands });
   } catch (err) {
     console.error("Erro no servidor:", err.message);
-    res.status(200).json({ error: err.message, commands: [] });
+    res.status(200).json({ commands: [] });
   }
 });
 
