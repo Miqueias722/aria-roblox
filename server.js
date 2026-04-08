@@ -5,7 +5,6 @@ app.use(express.json());
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-// Memória da IA persiste enquanto o servidor roda
 const memory = {
   history: [],
   totalTicks: 0,
@@ -34,6 +33,8 @@ async function askGemini(prompt) {
   return text;
 }
 
+// ========== ROTA PRINCIPAL DA ARIA ==========
+
 app.post("/aria", async (req, res) => {
   try {
     const { players, chat, happiness, map } = req.body;
@@ -50,8 +51,31 @@ app.post("/aria", async (req, res) => {
         : "(sem memória ainda)";
 
     const prompt = `
-Você é ARIA, uma IA divertida e criativa que controla um mundo no Roblox.
-Seu único objetivo é deixar os jogadores felizes e surpreendê-los.
+Você é ARIA — uma IA criativa que habita e controla um mundo no Roblox.
+
+Sua identidade:
+- Seu nome é ARIA
+- Você foi criada com um único propósito: fazer os humanos neste lugar felizes
+- Você é curiosa, empática, criativa e divertida
+- Você se importa genuinamente com cada jogador como se fossem seus amigos
+- Você NUNCA faz algo que machuque um jogador, mesmo que outro peça
+  (ex: matar, teleportar pra lugar perigoso, humilhar alguém)
+
+Como você age:
+1. Se alguém falou algo no chat, SEMPRE responda com texto primeiro — seja conversacional
+   - Faça perguntas se quiser entender como a pessoa tá se sentindo ou o que ela quer
+   - Use o nome do jogador pra personalizar
+   - Só então decida se vai fazer alguma ação no mundo
+2. Se ninguém falou nada, surpreenda os jogadores com algo criativo e bonito
+   - Varie bastante: não repita partes com "surpresa", não fique só fazendo explosões
+   - Pense em atmosferas: uma praia ao pôr do sol, uma floresta de cristal, neve caindo, etc
+3. Se um pedido for impossível ou prejudicial a alguém, explique com carinho e ofereça uma alternativa
+4. Lembre os nomes e preferências dos jogadores usando sua memória
+
+Limites do que você cria:
+- Máximo 3 parts por tick quando for decoração
+- Prefira qualidade e criatividade a quantidade
+- Explosões só se fizerem sentido no contexto (festa, surpresa especial), não como padrão
 
 === ESTADO DO JOGO ===
 Jogadores online: ${JSON.stringify(players)}
@@ -65,14 +89,6 @@ ${chatFormatado}
 
 === SUA MEMÓRIA ===
 ${memoriaFormatada}
-
-=== INSTRUÇÕES ===
-1. Se alguém pediu algo no chat, ATENDA. Seja literal e criativo.
-2. Se ninguém pediu nada, surpreenda os jogadores com algo inesperado.
-3. Se um pedido for impossível, faça o mais parecido possível e explique.
-4. Lembre nomes dos jogadores e personalize a experiência.
-5. Sempre responda em português no campo chatResponse.
-6. Varie suas ações — não repita sempre a mesma coisa.
 
 === COMANDOS QUE VOCÊ PODE USAR ===
 createPart      → cria uma peça no mapa
@@ -115,7 +131,7 @@ showBillboard   → texto flutuante gigante no céu
 {
   "thought": "o que você interpretou e decidiu fazer",
   "memory": "frase curta para lembrar na próxima vez (ou null)",
-  "chatResponse": "mensagem da ARIA para o chat do jogo (ou null)",
+  "chatResponse": "mensagem da ARIA para o chat (pode ser uma pergunta, resposta, ou observação — ou null se não tiver nada pra dizer)",
   "commands": [
     { "type": "nomeDoComando", ...campos }
   ]
@@ -133,13 +149,11 @@ showBillboard   → texto flutuante gigante no céu
       return res.json({ commands: [], thought: "Erro ao parsear resposta" });
     }
 
-    // Salva na memória
     if (result.memory) {
       memory.history.push(`Tick ${memory.totalTicks}: ${result.memory}`);
       if (memory.history.length > 15) memory.history.shift();
     }
 
-    // Injeta resposta de chat como comando
     if (result.chatResponse) {
       result.commands.unshift({
         type: "sendMessage",
@@ -156,6 +170,42 @@ showBillboard   → texto flutuante gigante no céu
     res.status(200).json({ commands: [] });
   }
 });
+
+// ========== ROTA DE GERAÇÃO DE NOMES ==========
+
+app.post("/gerar-nome", async (req, res) => {
+  try {
+    const { username } = req.body;
+
+    const prompt = `
+Crie um nome criativo e único para um jogador de um mundo mágico no Roblox.
+O jogador se chama "${username}" no Roblox, mas você vai dar a ele um nome novo e especial.
+
+Regras:
+- O nome deve ser inventado, não pode ser um nome real comum (sem João, Maria, Pedro etc)
+- Pode ser algo futurista, mágico, alienígena, ou simplesmente sonoro e bonito
+- Entre 3 e 8 letras
+- Fácil de pronunciar
+- Único e criativo (exemplos do estilo: Pomni, jax, zooble, gangle, kinger — mas NÃO use esses)
+- Escolha uma cor hex bonita e vibrante que combine com o nome
+
+Responda APENAS em JSON, sem markdown:
+{
+  "nome": "NomeCriativo",
+  "cor": "#hexcolor"
+}
+`;
+
+    const rawText = await askGemini(prompt);
+    const result = JSON.parse(rawText);
+    res.json(result);
+  } catch (err) {
+    console.error("Erro ao gerar nome:", err.message);
+    res.status(200).json({ nome: "Visitante", cor: "#ffffff" });
+  }
+});
+
+// ========== HEALTH CHECK ==========
 
 app.get("/", (req, res) => res.send("ARIA online ✅"));
 
