@@ -34,6 +34,37 @@ async function askGroq(prompt) {
   return text;
 }
 
+// ========== EXTRATOR DE JSON ROBUSTO ==========
+// Conta abertura/fechamento de chaves para pegar o objeto completo,
+// mesmo que o modelo mande texto antes ou depois do JSON.
+
+function extrairJSON(texto) {
+  const inicio = texto.indexOf("{");
+  if (inicio === -1) throw new Error("Nenhum { encontrado na resposta");
+
+  let profundidade = 0;
+  let emString = false;
+  let escape = false;
+
+  for (let i = inicio; i < texto.length; i++) {
+    const c = texto[i];
+
+    if (escape) { escape = false; continue; }
+    if (c === "\\" && emString) { escape = true; continue; }
+    if (c === '"') { emString = !emString; continue; }
+    if (emString) continue;
+
+    if (c === "{") profundidade++;
+    else if (c === "}") {
+      profundidade--;
+      if (profundidade === 0) {
+        return JSON.parse(texto.slice(inicio, i + 1));
+      }
+    }
+  }
+  throw new Error("JSON incompleto — chaves não fecharam");
+}
+
 // ========== ROTA PRINCIPAL DA ARIA ==========
 
 app.post("/aria", async (req, res) => {
@@ -198,11 +229,9 @@ Floresta noturna:
 
     let result;
     try {
-      const match = rawText.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error("Nenhum JSON encontrado na resposta");
-      result = JSON.parse(match[0]);
+      result = extrairJSON(rawText);
     } catch (e) {
-      console.error("JSON inválido recebido:", rawText);
+      console.error("JSON inválido recebido:", e.message, "\nRaw:", rawText);
       return res.json({ commands: [], thought: "Erro ao parsear resposta" });
     }
 
@@ -256,9 +285,11 @@ Responda APENAS em JSON puro, sem markdown, sem backticks:
     const rawText = await askGroq(prompt);
 
     let result;
-    const match = rawText.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Nenhum JSON encontrado: " + rawText);
-    result = JSON.parse(match[0]);
+    try {
+      result = extrairJSON(rawText);
+    } catch (e) {
+      throw new Error("Falha ao extrair JSON: " + e.message + "\nRaw: " + rawText);
+    }
 
     console.log(`[ARIA Nomes] ${username} → ${result.nome} (${result.cor})`);
     res.json(result);
