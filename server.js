@@ -157,7 +157,7 @@ showBillboard   → texto flutuante gigante no céu
     res.json({ commands: result.commands });
   } catch (err) {
     console.error("Erro no servidor:", err.message);
-    res.status(500).json({ error: err.message, commands: [] });
+    res.status(200).json({ error: err.message, commands: [] });
   }
 });
 
