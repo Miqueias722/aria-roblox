@@ -152,7 +152,7 @@ playMusic — controla o Sound chamado "Music" que já existe no Workspace
   REGRAS:
   - "play": toca uma música nova (define o soundId e inicia)
   - "stop": pausa (PlaybackSpeed = 0)
-  - "resume": retoma do ponto que parou (PlaybackSpeed = 1)  
+  - "resume": retoma do ponto que parou (PlaybackSpeed = 1)
   - "change": troca a música sem parar (muda o soundId)
   - NUNCA invente IDs fora da lista acima
   - Use música relaxante para momentos calmos, construções, paisagens
@@ -198,7 +198,9 @@ Floresta noturna:
 
     let result;
     try {
-      result = JSON.parse(rawText);
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("Nenhum JSON encontrado na resposta");
+      result = JSON.parse(match[0]);
     } catch (e) {
       console.error("JSON inválido recebido:", rawText);
       return res.json({ commands: [], thought: "Erro ao parsear resposta" });
@@ -252,7 +254,13 @@ Responda APENAS em JSON puro, sem markdown, sem backticks:
 `;
 
     const rawText = await askGroq(prompt);
-    const result = JSON.parse(rawText);
+
+    let result;
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("Nenhum JSON encontrado: " + rawText);
+    result = JSON.parse(match[0]);
+
+    console.log(`[ARIA Nomes] ${username} → ${result.nome} (${result.cor})`);
     res.json(result);
   } catch (err) {
     console.error("Erro ao gerar nome:", err.message);
